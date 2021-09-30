@@ -1,22 +1,19 @@
-from re import sub
 import requests
 import praw
 from time import sleep
-import pprint
+
 
 # Reddit Auth Constants
 BOT_ID = ''         # The bot ID
 BOT_SECRET = ''     # The bot secret token
+# Telegram Constants
+TG_BOT_TOKEN = ''
+TG_CHANNEL_ID = ''
 
 LATEST_MANGA_LIST = [''] * 25
 PROCESSED_REQUESTS = [''] * 25
 REQUESTS_INDEX = 0
 MANGA_INDEX = 0
-
-
-# Telegram Constants
-TG_BOT_TOKEN = ''
-TG_CHANNEL_ID = ''
 
 def send_message(message):
     requests.get(f'https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage?chat_id={TG_CHANNEL_ID}&text={message}')
@@ -24,7 +21,7 @@ def send_message(message):
 def main():
     try:
         global MANGA_INDEX, LATEST_MANGA_LIST, PROCESSED_REQUESTS, REQUESTS_INDEX
-        #legge il file con i titoli
+        # Reads the titles file
         fileL = open("lista.txt", "r+")
         contenutoF = fileL.read()
         MANGA_LIST = contenutoF.split(';')
@@ -36,34 +33,33 @@ def main():
         )
         mangaSubreddit = redditC.subreddit('manga')
         for submission in mangaSubreddit.new(limit=50):
-            #controllo se è una release manga
+            # I check if it's a release post
             if "[DISC]" in submission.title.upper():
                 if any(titolo in submission.title.lower() for titolo in MANGA_LIST):
-                    # se l'id non è presente nella lista dei post recenti
+                    # I check if I haven't already checked a post with the same ID
                     if submission.id not in LATEST_MANGA_LIST:
-                        print("Avviso per " + submission.title)
+                        print("Alert for " + submission.title)
                         # creo e mando il messaggio
                         urlCompleto = "https://www.reddit.com" + submission.permalink
-                        urlMobile = "https://gabrieledinuovo.it/reddirect.html?redd=" + submission.id
-                        messaggio = submission.title + '\n' + urlCompleto + '\n\n' + urlMobile
+                        messaggio = 'New manga chapter:' + submission.title + '\n' + urlCompleto
                         send_message(messaggio)
-                        # salva l'id per evitare duplicati
+                        # I save the ID to avoid duplicates
                         LATEST_MANGA_LIST[MANGA_INDEX] = submission.id
                         MANGA_INDEX += 1
                         if(MANGA_INDEX > 24):
-                            print("reset dell'index manga")
+                            print("Reset manga index")
                             MANGA_INDEX = 0
 
-        #leggo i messaggi ricevuti
+        # I read the received messages
         messaggiRaw = requests.get(f'https://api.telegram.org/bot{TG_BOT_TOKEN}/getUpdates?chat_id={TG_CHANNEL_ID}')
         messaggiDecoded = messaggiRaw.json()
         for messaggio in messaggiDecoded['result']:
-            #controllo di non averlo già processato e che venga dal mio gruppo
+            # I check that the message is from the correct chat and that I haven't already processed it
             if messaggio['update_id'] not in PROCESSED_REQUESTS:
                 idCanale = str(messaggio['message']['chat']['id'])
                 if idCanale == TG_CHANNEL_ID:
                     if messaggio['message']['text'].startswith('/addmanga'):
-                        #se è il comando giusto, estraggo il nome del manga e lo aggiungo alla lista
+                        # If it's a correct command, I extract the manga name and I add it to the list
                         posSpazio = messaggio['message']['text'].find(' ')
                         nomeManga = messaggio['message']['text'][posSpazio:].lower().strip()
                         if len(nomeManga) > 0 and posSpazio != -1:
@@ -75,7 +71,7 @@ def main():
                             print(publicMsg)
                             send_message(publicMsg)
                             if(REQUESTS_INDEX > 24):
-                                print("reset dell'index richieste")
+                                print("Reset requests index")
                                 REQUESTS_INDEX = 0
 
     except Exception as e:
@@ -86,5 +82,5 @@ def main():
 if __name__ == "__main__":
     while(True):
         main()
-        print('sleeping for 20 mins')
+        print('Sleeping for 20 mins')
         sleep(20 * 60)
