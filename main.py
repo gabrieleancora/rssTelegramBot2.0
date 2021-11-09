@@ -1,5 +1,6 @@
 import requests
 import praw
+import re
 from time import sleep
 
 
@@ -35,13 +36,16 @@ def main():
         for submission in mangaSubreddit.new(limit=50):
             # I check if it's a release post
             if "[DISC]" in submission.title.upper():
-                if any(titolo in submission.title.lower() for titolo in MANGA_LIST):
+                titleStripped = submission.title.upper().replace("[DISC]", "")
+                titleStripped = re.sub(r'[^A-Za-z0-9 ]+', '', titleStripped)
+                titleStripped = titleStripped.lower()
+                if any(titolo in titleStripped for titolo in MANGA_LIST):
                     # I check if I haven't already checked a post with the same ID
                     if submission.id not in LATEST_MANGA_LIST:
                         print("Alert for " + submission.title)
                         # creo e mando il messaggio
                         urlCompleto = "https://www.reddit.com" + submission.permalink
-                        messaggio = 'New manga chapter:' + submission.title + '\n' + urlCompleto
+                        messaggio = 'New manga chapter: ' + submission.title + '\n' + urlCompleto
                         send_message(messaggio)
                         # I save the ID to avoid duplicates
                         LATEST_MANGA_LIST[MANGA_INDEX] = submission.id
