@@ -102,7 +102,7 @@ if __name__ == "__main__":
         if TG_BOT_TOKEN == "" or TG_CHANNEL_ID == "" or REDDIT_BOT_ID == "" or REDDIT_BOT_SECRET == "":
             print("Please fill all the required informations! Only the Mangadex part is optional!")
             exit(1)
-        print("All the tokens loaded correctly, starting the bot now.")
+        print("Program initialized, starting the main loop.")
         # The "main" loop
         while(True):
             main()
