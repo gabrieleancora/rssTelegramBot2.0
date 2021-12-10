@@ -20,3 +20,8 @@ v1 (now private) is not going to be updated anymore since reddit rate limited me
 
 No messages are sent on initialization.  
 Use tmux or something similar to avoid to close the python session when you log out from the device
+
+## Future plans:  
+- [ ] move all the auth stuff to a separate file lol
+- [ ] `/removemanga` to remove a manga from the list (maybe using telegram buttons to avoid "guessing" what the user wrote vs what is in the file)
+- [ ] [mangadex.org](https://mangadex.org/) 'followed manga' integration using the API! (it would require to save on the bot files the username and the password tho)
