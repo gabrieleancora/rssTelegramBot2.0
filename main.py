@@ -25,6 +25,10 @@ MANGA_INDEX = 0
 TG_OFFSET_ID = 0
 
 def send_message(message, markdown = False):
+    message = message.replace("%", "%25")
+    message = message.replace("&", "%26")
+    message = message.replace("<", "%3C")
+    message = message.replace(">", "%3E")
     apend = ""
     if markdown == True:
         apend = "&parse_mode=Markdown"
@@ -46,7 +50,7 @@ def main():
         redditC = praw.Reddit(
             client_id = REDDIT_BOT_ID,
             client_secret = REDDIT_BOT_SECRET,
-            user_agent = 'TelegramAlert/0.5'
+            user_agent = 'TelegramAlert/0.5.1'
         )
         # The manga subreddit. 
         mangaSubreddit = redditC.subreddit('manga')
@@ -62,8 +66,8 @@ def main():
                     if submission.id not in LATEST_MANGA_LIST:
                         consolePrint("Alert for " + submission.title)
                         # I create and send the message
-                        completeUrl = 'https://www.reddit.com' + submission.permalink
-                        message = "New manga chapter: " + submission.title + "\n" + completeUrl
+                        completeUrl = "https://www.reddit.com" + submission.permalink
+                        message = f"New manga chapter: {submission.title}\n{completeUrl}"
                         send_message(message)
                         # I save the ID to avoid duplicates
                         LATEST_MANGA_LIST[MANGA_INDEX] = submission.id
