@@ -24,8 +24,11 @@ LATEST_MANGA_LIST = [''] * MAX_LIST_SIZE
 MANGA_INDEX = 0
 TG_OFFSET_ID = 0
 
-def send_message(message):
-    requests.get(f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage?chat_id={TG_CHANNEL_ID}&text={message}&parse_mode=Markdown")
+def send_message(message, markdown = False):
+    apend = ""
+    if markdown == True:
+        apend = "&parse_mode=Markdown"
+    requests.get(f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage?chat_id={TG_CHANNEL_ID}&text={message}{apend}")
 
 def consolePrint(message):
     header = "[" + datetime.now().strftime("%d-%m-%Y %H:%M:%S") + "] "
@@ -43,7 +46,7 @@ def main():
         redditC = praw.Reddit(
             client_id = REDDIT_BOT_ID,
             client_secret = REDDIT_BOT_SECRET,
-            user_agent = 'TelegramAlert/0.4'
+            user_agent = 'TelegramAlert/0.5'
         )
         # The manga subreddit. 
         mangaSubreddit = redditC.subreddit('manga')
@@ -54,7 +57,7 @@ def main():
                 titleStripped = submission.title.upper().replace("[DISC]", "")
                 titleStripped = re.sub(r'[^A-Za-z0-9 ]+', '', titleStripped)
                 titleStripped = titleStripped.lower()
-                if any(titleStripped in savedTitle for savedTitle in MANGA_LIST):
+                if any(savedTitle in titleStripped for savedTitle in MANGA_LIST):
                     # I check if I haven't already checked a post with the same ID
                     if submission.id not in LATEST_MANGA_LIST:
                         consolePrint("Alert for " + submission.title)
@@ -68,7 +71,7 @@ def main():
                         if(MANGA_INDEX > (MAX_LIST_SIZE - 1)):
                             consolePrint("Reset manga index")
                             MANGA_INDEX = 0
-
+        
         # I read the received messages
         messaggiRaw = requests.get(f"https://api.telegram.org/bot{TG_BOT_TOKEN}/getUpdates?chat_id={TG_CHANNEL_ID}&offset={TG_OFFSET_ID}")
         messaggiDecoded = messaggiRaw.json()
@@ -91,8 +94,53 @@ def main():
                             MANGA_LIST.append(line.replace('\n',''))
                     publicMsg = "Added the manga `" + mangaName + "` to the alert list."
                     consolePrint(publicMsg)
-                    send_message(publicMsg)
+                    send_message(publicMsg, True)
+            
+            elif message['message']['text'].startswith('/removemanga'):
+                # If it's a correct command, I extract the manga name and I remove it from the file
+                spacePosition = message['message']['text'].find(' ')
+                mangaName = message['message']['text'][spacePosition:].lower().strip()
+                if len(mangaName) > 0 and spacePosition != -1:
+                    publicMsg = "The manga wasn't found in the alert list."
+                    try:
+                        # I find the index of the manga to remove
+                        toRemove = MANGA_LIST.index(mangaName)
+                        with open("list.txt", "w") as listFile:
+                            i = 0
+                            for manga in MANGA_LIST:
+                                if i != toRemove:
+                                    listFile.write(manga)
+                                    listFile.write("\n")
+                                i = i + 1
+                        # I reload the manga_list variable to remove the manga from the alerts
+                        MANGA_LIST = []
+                        with open('list.txt', 'r') as listFile:
+                            for line in listFile:
+                                MANGA_LIST.append(line.replace('\n',''))
+                        publicMsg = "The manga `" + mangaName + "` was removed from the alert list."
+                    except ValueError as e:
+                        # If the title isn't found, I print the closes matches.
+                        closer_value_list = [needle for needle in MANGA_LIST if mangaName in needle]
+                        if len(closer_value_list) > 0:
+                            publicMsg = "The manga wasn't found, the closest entries are:\n```\n"
+                            for el in closer_value_list:
+                                publicMsg = publicMsg + el + "\n"
+                            publicMsg = publicMsg + "```"
+                    finally:
+                        send_message(publicMsg, True)
+                        consolePrint(publicMsg)
                     
+            elif message['message']['text'].startswith('/mangalist'):
+                # "Simply" sends a list of the interesting manga.
+                # Please don't make the message longer than 3000 characters because Telegram is going to refuse it.
+                messageToSend = "List of manga:\n```\n"
+                for manga in MANGA_LIST:
+                    messageToSend = messageToSend + manga + "\n"
+                messageToSend = messageToSend + "```"
+                send_message(messageToSend, True)            
+                consolePrint("Sending a list of all registered manga alerts.")
+
+
     except Exception as e:
         print("There was an exception:\n" + str(e))
         send_message("The bot crashed, please check the console for more informations about the error.")
