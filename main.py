@@ -179,6 +179,7 @@ if __name__ == "__main__":
             print("Please fill all the required informations! Only the Mangadex part is optional!")
             exit(1)
         consolePrint("Program initialized, starting the main loop.")
+        send_message(f"Bot initialized successfully!\nThe refresh interval is currently set at {REFRESH_TIME} minutes.")
         # The "main" loop
         while(True):
             main()
