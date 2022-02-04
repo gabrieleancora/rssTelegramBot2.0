@@ -1,5 +1,6 @@
 import requests
 import praw
+from prawcore.exceptions import PrawcoreException
 import re
 import configparser
 import os
@@ -23,6 +24,7 @@ REFRESH_TIME = 20
 LATEST_MANGA_LIST = [''] * MAX_LIST_SIZE
 MANGA_INDEX = 0
 TG_OFFSET_ID = 0
+BACKOFF_RETRIES = 0
 
 def send_message(message, markdown = False):
     message = message.replace("%", "%25")
@@ -40,8 +42,13 @@ def consolePrint(message):
 
 def main():
     try:
-        global MANGA_INDEX, LATEST_MANGA_LIST, PROCESSED_REQUESTS, REQUESTS_INDEX, TG_OFFSET_ID
+        global MANGA_INDEX, LATEST_MANGA_LIST, PROCESSED_REQUESTS, REQUESTS_INDEX, TG_OFFSET_ID, BACKOFF_RETRIES
         MANGA_LIST = []
+        if BACKOFF_RETRIES > 0:
+            consolePrint(f"Sending a message to the Telegram channel to inform that the bot is back online.\nIt was offline for {BACKOFF_RETRIES} checks.")
+            send_message(f"The bot couldn't check for new manga for {BACKOFF_RETRIES} times because of connection problems.")
+            BACKOFF_RETRIES = 0
+
         # Read the titles from the file, removing the newlines
         with open('list.txt', 'r') as listFile:
             for line in listFile:
@@ -144,9 +151,18 @@ def main():
                 send_message(messageToSend, True)            
                 consolePrint("Sending a list of all registered manga alerts.")
 
-
+    except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError) as e:
+        consolePrint(f"There was a connection error, retrying after {REFRESH_TIME} minutes.")
+        consolePrint(f"The exception was: {e}")
+        BACKOFF_RETRIES += 1
+        return
+    except PrawcoreException as e:
+        consolePrint(f"There was a reddit connection error, retrying after {REFRESH_TIME} minutes")
+        consolePrint(f"The exception was: {e}")
+        BACKOFF_RETRIES += 1
+        return
     except Exception as e:
-        print("There was an exception:\n" + str(e))
+        consolePrint("There was an exception:\n" + str(e))
         send_message("The bot crashed, please check the console for more informations about the error.")
         exit(1)
     finally:
