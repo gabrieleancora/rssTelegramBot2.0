@@ -195,7 +195,13 @@ if __name__ == "__main__":
             print("Please fill all the required informations! Only the Mangadex part is optional!")
             exit(1)
         consolePrint("Program initialized, starting the main loop.")
-        send_message(f"Bot initialized successfully!\nThe refresh interval is currently set at {REFRESH_TIME} minutes.")
+        # Sending a message to the Telegram channel to inform that the bot has started.
+        # In case of no connection, the bot will start anyway without sending the message.
+        try:
+            send_message(f"Bot initialized successfully!\nThe refresh interval is currently set at {REFRESH_TIME} minutes.")
+        except Exception as e:
+            consolePrint(f"There was an error while sending the initialization message to the Telegram channel: {e}")
+            consolePrint("The bot will continue to run, but the initialization message won't be sent.")
         # The "main" loop
         while(True):
             main()
