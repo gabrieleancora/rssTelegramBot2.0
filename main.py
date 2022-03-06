@@ -1,3 +1,4 @@
+from types import NoneType
 import requests
 import praw
 from prawcore.exceptions import PrawcoreException
@@ -62,8 +63,11 @@ def main():
         # The manga subreddit. 
         mangaSubreddit = redditC.subreddit('manga')
         for submission in mangaSubreddit.new(limit=50):
-            # I check if it's a release post
-            if "[DISC]" in submission.title.upper():
+            # I check if it's a release post using the title or the flair
+            flairText = ""
+            if isinstance(submission.link_flair_text, str):
+                flairText = submission.link_flair_text
+            if "[DISC]" in submission.title.upper() or flairText.upper() == "DISC":
                 # I strip all the strange characters 
                 titleStripped = submission.title.upper().replace("[DISC]", "")
                 titleStripped = re.sub(r'[^A-Za-z0-9 ]+', '', titleStripped)
