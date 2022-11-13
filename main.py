@@ -1,4 +1,3 @@
-from types import NoneType
 import requests
 import praw
 from prawcore.exceptions import PrawcoreException
@@ -154,6 +153,13 @@ def main():
                 messageToSend = messageToSend + "```"
                 send_message(messageToSend, True)            
                 consolePrint("Sending a list of all registered manga alerts.")
+
+            elif message['message']['text'].startswith('/ping'):
+                # Simplest ping ever
+                pingDate = datetime.now().strftime('%Y-%m-%d %H:%M')
+                messageToSend = 'Pong\nPing received in date {}'.format(pingDate)
+                send_message(messageToSend)
+                consolePrint("Sending a ping response.")
 
     except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError) as e:
         consolePrint(f"There was a connection error, retrying after {REFRESH_TIME} minutes.")
